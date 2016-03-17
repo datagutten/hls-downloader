@@ -1,10 +1,13 @@
 <?Php
+require_once 'tools/dependcheck.php';
 class hls_downloader
 {
 	public $ch;
 	public $cookiefile=false;
+	public $cookiejar=false;
 	public $retry_limit=3;
 	public $cli=true;
+	public $dependcheck;
 
 	function __construct()
 	{
@@ -19,10 +22,11 @@ class hls_downloader
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
 		curl_setopt($this->ch, CURLOPT_USERAGENT, 'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/48.0.2564.109 Safari/537.36');
-		curl_setopt($this->ch, CURLOPT_COOKIEFILE, $this->cookiefile);
-		curl_setopt($this->ch, CURLOPT_COOKIEJAR, $this->cookiefile);
+		if($this->cookiefile!==false)
+			curl_setopt($this->ch, CURLOPT_COOKIEFILE, $this->cookiefile);
+		if($this->cookiejar!==false)
+			curl_setopt($this->ch, CURLOPT_COOKIEJAR, $this->cookiejar);
 
-		require_once 'tools/dependcheck.php';
 		$this->dependcheck=new dependcheck; //Class for checking if command line tools is installed
 	}
 	public function get($url)
@@ -47,7 +51,7 @@ class hls_downloader
 	public function clean_filename($filename)
 	{
 		$filename=html_entity_decode($filename);
-		$filename=str_replace(array(':','?','*','|','<','>','/','\\'),array(' -','','','','','','',''),$filename);
+		$filename=str_replace(array(':','?','*','|','<','>','/','\\'),array(' -','','','','','','-','-'),$filename);
 		if(PHP_OS=='WINNT')
 			$filename=utf8_decode($filename);
 		return $filename;
@@ -83,6 +87,17 @@ class hls_downloader
 		return $streams[$keys[0]];
 	}
 
+	//Parse m3u8, find best stream and extract the segments
+	public function segments($m3u8)
+	{
+		$streams=$this->parse_m3u8($m3u8);
+		$stream=$this->find_best_stream($streams);
+		$segmentlist=$this->get($stream['url']);
+		if($segmentlist===false)
+			return false;
+		preg_match_all('^.+segment.+^',$segmentlist,$segments);
+		return $segments[0];
+	}
 	//Download segments to a ts file
 	public function downloadts($segments,$file)
 	{
@@ -145,5 +160,25 @@ class hls_downloader
 			echo $shellreturn;
 		else
 			echo nl2br($shellreturn);
+	}
+	
+	//Download a stream and mux to mkv
+	public function download($m3u8,$filename)
+	{
+		$segments=$this->segments($m3u8);
+		if($segments===false)
+			return false;
+		//$filename=$this->clean_filename($filename);
+		if(!file_exists($filename.'.ts'))
+			$this->downloadts($segments,$filename);
+		if(!file_exists($filename.'.mkv'))
+			$this->mkvmerge($filename);
+		if(!file_exists($filename.'.mkv'))
+		{
+			$this->error='muxing to mkv failed';
+			return false;
+		}
+		else
+			return $filename.'.mkv';
 	}
 }
