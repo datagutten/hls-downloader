@@ -1,5 +1,6 @@
 <?Php
 require_once 'tools/dependcheck.php';
+require_once 'tools/video_duration_check.php';
 class hls_downloader
 {
 	public $ch;
@@ -8,6 +9,7 @@ class hls_downloader
 	public $retry_limit=3;
 	public $cli=true;
 	public $dependcheck;
+	public $duration_check;
 
 	function __construct()
 	{
@@ -28,6 +30,7 @@ class hls_downloader
 			curl_setopt($this->ch, CURLOPT_COOKIEJAR, $this->cookiejar);
 
 		$this->dependcheck=new dependcheck; //Class for checking if command line tools is installed
+		$this->duration_check=new video_duration_check;
 	}
 	public function get($url)
 	{
@@ -178,7 +181,15 @@ class hls_downloader
 			$this->error='muxing to mkv failed';
 			return false;
 		}
+		$duration_ts=$this->duration_check->duration($filename.'.ts');
+		$duration_check_result=$this->duration_check->check_file_duration($filename.'.mkv',$duration_ts);
+		if($duration_check_result===false) //Check if the file was successfully muxed
+			return false;
 		else
-			return $filename.'.mkv';
+		{
+			if($duration_check_result===true) //Delete ts file if the muxed duration was successfully verified
+				unlink($filename.'.ts');
+			return $filename.'.mkv'; //Return the muxed file name
+		}
 	}
 }
