@@ -17,7 +17,7 @@ class hls_downloader
 	public function init()
 	{
 		$this->ch=curl_init();
-		if($this->cookiefile!==false && !file_exists($this->cookiefile))
+		if(!empty($this->cookiefile) && !file_exists($this->cookiefile))
 			throw new exception('Cookie file does not exist: '.$this->cookiefile);
 		curl_setopt($this->ch, CURLOPT_RETURNTRANSFER, 1);
 		curl_setopt($this->ch, CURLOPT_FOLLOWLOCATION, true);
