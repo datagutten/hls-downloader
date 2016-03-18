@@ -153,7 +153,11 @@ class hls_downloader
 			$this->error='mkvmerge was not found, unable to create mkv';
 			return false;
 		}
-
+		if(file_exists($filename.'.mkv'))
+		{
+			$this->error=sprintf('%s.mkv exists',$filename);
+			return false;
+		}
 		echo "Creating mkv\n";
 		$cmd=sprintf('mkvmerge -o "%1$s.mkv" "%1$s.ts"',$filename);
 		if(file_exists($filename.'.chapters.txt'))
