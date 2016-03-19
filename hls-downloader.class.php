@@ -170,30 +170,41 @@ class hls_downloader
 	}
 	
 	//Download a stream and mux to mkv
-	public function download($m3u8,$filename)
+	public function download($m3u8,$filename,$expected_duration=false)
 	{
-		$segments=$this->segments($m3u8);
+		$file_mkv=$filename.'.mkv';
+		$file_ts=$filename.'.ts';
+
+		//Check if the video is already downloaded
+		if($expected_duration!==false && $this->duration_check->check_file_duration($file_mkv,$expected_duration)===true)
+			return $file_mkv;
+		if(file_exists($file_mkv)) //Additional check in case the file could not be checked by duration
+			return $file_mkv;
+
+		$segments=$this->segments($m3u8); //Get segments of best stream
 		if($segments===false)
 			return false;
-		//$filename=$this->clean_filename($filename);
-		if(!file_exists($filename.'.ts'))
+
+		if(!file_exists($file_ts))
 			$this->downloadts($segments,$filename);
-		if(!file_exists($filename.'.mkv'))
+		//Check if the file was successfully downloaded
+		if($expected_duration!==false)
+		{
+			if($this->duration_check->check_file_duration($file_ts,$expected_duration)===false)
+				return false;
+		}
+		$duration_ts=$this->duration_check->duration($file_ts);
+
+		if(!file_exists($file_mkv))
 			$this->mkvmerge($filename);
-		if(!file_exists($filename.'.mkv'))
+		$duration_check_result=$this->duration_check->check_file_duration($file_mkv,$duration_ts);
+		if($duration_check_result===false) //Check if the file was successfully muxed
 		{
 			$this->error='muxing to mkv failed';
 			return false;
 		}
-		$duration_ts=$this->duration_check->duration($filename.'.ts');
-		$duration_check_result=$this->duration_check->check_file_duration($filename.'.mkv',$duration_ts);
-		if($duration_check_result===false) //Check if the file was successfully muxed
-			return false;
-		else
-		{
-			if($duration_check_result===true) //Delete ts file if the muxed duration was successfully verified
-				unlink($filename.'.ts');
-			return $filename.'.mkv'; //Return the muxed file name
-		}
+		if($duration_check_result===true) //Delete ts file if the muxed duration was successfully verified
+			unlink($file_ts);
+		return $filename.'.mkv'; //Return the muxed file name
 	}
 }
