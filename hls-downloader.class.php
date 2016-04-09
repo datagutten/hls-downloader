@@ -191,7 +191,10 @@ class hls_downloader
 		if($expected_duration!==false)
 		{
 			if($this->duration_check->check_file_duration($file_ts,$expected_duration)===false)
+			{
+				$this->error=$this->duration_check->error;
 				return false;
+			}
 		}
 		$duration_ts=$this->duration_check->duration($file_ts);
 
