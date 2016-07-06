@@ -84,6 +84,8 @@ class hls_downloader
 	//Find the stream with the highest bandwidth
 	public function find_best_stream($streams)
 	{
+		$streams=array_filter($streams,function ($var) { return isset($var['BANDWIDTH']); }); //Remove items without bandwidth
+		$streams=array_values($streams); //Reset keys
 		$bandwidths=array_column($streams,'BANDWIDTH');
 		arsort($bandwidths);
 		$keys=array_keys($bandwidths);
