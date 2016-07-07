@@ -98,9 +98,13 @@ class hls_downloader
 		$streams=$this->parse_m3u8($m3u8);
 		$stream=$this->find_best_stream($streams);
 		$segmentlist=$this->get($stream['url']);
-		if($segmentlist===false)
+		if($segmentlist===false) //cURL returned error
 			return false;
-		preg_match_all('^.+segment.+^',$segmentlist,$segments);
+		if(!preg_match_all('^.+segment.+^',$segmentlist,$segments))
+		{
+			$this->error=_('No segments found');
+			return false;
+		}
 		return $segments[0];
 	}
 	//Download segments to a ts file
@@ -116,6 +120,12 @@ class hls_downloader
 			$this->error=sprintf('Unable to open %s for writing',$file);
 			return false;
 		}
+		if(empty($segments))
+		{
+			$this->error=_('No segments found');
+			return false;
+		}
+
 		foreach($segments as $key=>$segment)
 		{
 			$num=$key+1;
