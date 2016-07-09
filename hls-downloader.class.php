@@ -97,7 +97,17 @@ class hls_downloader
 	{
 		$streams=$this->parse_m3u8($m3u8);
 		$stream=$this->find_best_stream($streams);
-		$segmentlist=$this->get($stream['url']);
+		curl_setopt($this->ch, CURLOPT_HEADER,true); //Output header together with data
+		$data=$this->get($stream['url']);
+		curl_setopt($this->ch, CURLOPT_HEADER,false); //Turn off header for next request
+		//Separate header and data
+		$header=substr($data,0,strpos($data,"\r\n\r\n"));
+		$segmentlist=substr($data,strpos($data,"\r\n\r\n"));
+
+		//Check if segment urls are relative and get complete url from set-cookie header
+		if(strpos($segmentlist,"\nsegment")!==false && preg_match('/Set\-Cookie:.+path=(.+?); domain=(.+)/',$header,$cookies))
+			$segmentlist=str_replace("\nsegment",sprintf("\nhttp://%s%ssegment",$cookies[2],$cookies[1]),$segmentlist);
+
 		if($segmentlist===false) //cURL returned error
 			return false;
 		if(!preg_match_all('^.+segment.+^',$segmentlist,$segments))
