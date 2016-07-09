@@ -95,6 +95,8 @@ class hls_downloader
 	//Parse m3u8, find best stream and extract the segments
 	public function segments($m3u8)
 	{
+		if(substr($m3u8,0,4)=='http')
+			$m3u8=$this->get($m3u8);
 		$streams=$this->parse_m3u8($m3u8);
 		$stream=$this->find_best_stream($streams);
 		curl_setopt($this->ch, CURLOPT_HEADER,true); //Output header together with data
@@ -192,7 +194,7 @@ class hls_downloader
 	}
 	
 	//Download a stream and mux to mkv
-	public function download($m3u8,$filename,$expected_duration=false)
+	public function download($m3u8_or_segments,$filename,$expected_duration=false)
 	{
 		$file_mkv=$filename.'.mkv';
 		$file_ts=$filename.'.ts';
@@ -202,8 +204,10 @@ class hls_downloader
 			return $file_mkv;
 		if(file_exists($file_mkv)) //Additional check in case the file could not be checked by duration
 			return $file_mkv;
-
-		$segments=$this->segments($m3u8); //Get segments of best stream
+		if(is_array($m3u8_or_segments))
+			$segments=$m3u8_or_segments;
+		else
+			$segments=$this->segments($m3u8_or_segments); //Get segments of best stream
 		if($segments===false)
 			return false;
 
