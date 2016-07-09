@@ -169,23 +169,49 @@ class hls_downloader
 		return $file; //Return the file name with extension
 	}
 
-	//Mux the ts to mkv using mkvmerge
-	public function mkvmerge($filename)
+	/*Mux the ts to mkv using mkvmerge
+	First argument can be a string with a single file name or an array with multiple files to be merged into one mkv
+	When the first argument is array the mkv file name need to be specified as the second argument
+	*/
+	public function mkvmerge($filename,$mkvfile=false)
 	{
 		if($this->dependcheck->depend('mkvmerge')!==true)
 		{
 			$this->error='mkvmerge was not found, unable to create mkv';
 			return false;
 		}
-		if(file_exists($filename.'.mkv'))
+		if(is_array($filename))
 		{
-			$this->error=sprintf('%s.mkv exists',$filename);
+			if($mkvfile===false)
+			{
+				$this->error='MKV file name need to be specified when using multiple input files';
+				return false;
+			}
+
+			foreach($filename as $file)
+			{
+				$file=sprintf('"%s.ts"',$file); //Add double quotes and extension to the file name
+				if(!isset($files))
+					$files=$file;
+				else
+					$files.=' + '.$file;
+			}
+			$cmd=sprintf('mkvmerge -o "%s.mkv" %s',$mkvfile,$files);
+		}
+		else
+		{
+			$cmd=sprintf('mkvmerge -o "%1$s.mkv" "%1$s.ts"',$filename);
+			$mkvfile=$filename;
+		}
+
+		if(file_exists($mkvfile.'.mkv'))
+		{
+			$this->error=sprintf('%s.mkv exists',$mkvfile);
 			return false;
 		}
 		echo "Creating mkv\n";
-		$cmd=sprintf('mkvmerge -o "%1$s.mkv" "%1$s.ts"',$filename);
-		if(file_exists($filename.'.chapters.txt'))
-			$cmd.=sprintf(' --chapter-charset UTF-8 --chapters "%s.chapters.txt"',$filename);
+		if(file_exists($mkvfile.'.chapters.txt'))
+			$cmd.=sprintf(' --chapter-charset UTF-8 --chapters "%s.chapters.txt"',$mkvfile);
 		$shellreturn=shell_exec($cmd." 2>&1");
 		if($this->cli)
 			echo $shellreturn;
