@@ -103,8 +103,9 @@ class hls_downloader
 		$data=$this->get($stream['url']);
 		curl_setopt($this->ch, CURLOPT_HEADER,false); //Turn off header for next request
 		//Separate header and data
-		$header=substr($data,0,strpos($data,"\r\n\r\n"));
-		$segmentlist=substr($data,strpos($data,"\r\n\r\n"));
+		$header=substr($data,0,strpos($data,"\r\n\r\n")); //Header is before a doble CRLF
+		$header=str_replace("\r",'',$header); //Remove CR from header
+		$segmentlist=trim(substr($data,strpos($data,"\r\n\r\n"))); //Data starts after double CRLF
 
 		//Check if segment urls are relative and get complete url from set-cookie header
 		if(strpos($segmentlist,"\nsegment")!==false && preg_match('/Set\-Cookie:.+path=(.+?); domain=(.+)/',$header,$cookies))
