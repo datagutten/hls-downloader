@@ -249,10 +249,10 @@ class hls_downloader
 				return false;
 			}
 		}
-		$duration_ts=$this->duration_check->duration($file_ts);
+		if(!file_exists($file_mkv) && $this->mkvmerge($filename)===false)
+				return false;
 
-		if(!file_exists($file_mkv))
-			$this->mkvmerge($filename);
+		$duration_ts=$this->duration_check->duration($file_ts);
 		$duration_check_result=$this->duration_check->check_file_duration($file_mkv,$duration_ts);
 		if($duration_check_result===false) //Check if the file was successfully muxed
 		{
