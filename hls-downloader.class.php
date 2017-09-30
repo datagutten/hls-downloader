@@ -54,7 +54,7 @@ class hls_downloader
 	public function clean_filename($filename)
 	{
 		$filename=html_entity_decode($filename);
-		$filename=str_replace(array(':','?','*','|','<','>','/','\\'),array(' -','','','','','','-','-'),$filename);
+		$filename=str_replace(array(':','?','*','|','<','>','/','\\','"'),array(' -','','','','','','-','-',''),$filename);
 		if(PHP_OS=='WINNT')
 			$filename=utf8_decode($filename);
 		return $filename;
