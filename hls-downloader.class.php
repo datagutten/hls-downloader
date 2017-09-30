@@ -34,6 +34,8 @@ class hls_downloader
 	}
 	public function get($url)
 	{
+		if(empty($this->ch))
+			$this->init();
 		curl_setopt($this->ch,CURLOPT_URL,$url);
 		$result=curl_exec($this->ch);
 		$http_status = curl_getinfo($this->ch, CURLINFO_HTTP_CODE);
